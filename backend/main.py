@@ -1,25 +1,26 @@
+import json, uuid
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from graph.graph import app_graph
 from graph.state import AgentState
-import json, uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
-app = FastAPI(title="Save the World — Situation Room API")
+app = FastAPI(title="Save the World — UN AI Situation Room")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "https://save-the-world-mu.vercel.app",
-        "https://*.vercel.app",   # covers preview deployments
-    ],  # Vite dev server
+        "https://*.vercel.app",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-MOCK_DATA = Path(__file__).parent / "data" / "mock_events.json"
+MOCK_DATA  = Path(__file__).parent / "data" / "mock_events.json"
+CACHE_FILE = Path(__file__).parent / "data" / "classifier_cache.json"
 
 
 @app.get("/health")
@@ -29,13 +30,18 @@ def health():
 
 @app.get("/events")
 def get_events():
-    """Return raw mock events as GeoJSON FeatureCollection."""
+    """Raw mock events as GeoJSON — used by the map before analysis runs."""
     events = json.loads(MOCK_DATA.read_text())
+    # Merge any cached classifications if available
+    cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
+    for e in events:
+        if e["id"] in cache:
+            e.update({k: cache[e["id"]][k] for k in ("category","urgency","sdg_tags")})
     features = [
         {
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [e["lng"], e["lat"]]},
-            "properties": {k: v for k, v in e.items() if k not in ("lat", "lng")},
+            "properties": {k: v for k, v in e.items() if k not in ("lat","lng")},
         }
         for e in events
     ]
@@ -44,9 +50,8 @@ def get_events():
 
 @app.post("/analyze")
 def run_analysis():
-    """Trigger the full LangGraph pipeline on mock data."""
+    """Trigger full LangGraph pipeline on mock data."""
     events = json.loads(MOCK_DATA.read_text())
-
     initial_state: AgentState = {
         "raw_events": events,
         "ingested_events": [],
@@ -61,12 +66,13 @@ def run_analysis():
         "run_id": str(uuid.uuid4()),
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
-
     result = app_graph.invoke(initial_state)
-
     return {
         "run_id": result["run_id"],
-        "events_processed": len(result["summarized_events"]),
+        "events_processed": len(result["classified_events"]),
+        "crisis_events": [
+            {"id": e["id"], "title": e["title"], "urgency": e["urgency"], "category": e["category"]}
+            for e in result["classified_events"] if e["urgency"] == "crisis"
+        ],
         "trend_report": result["trend_report"],
-        "solutions": result["solution_proposals"],
     }
