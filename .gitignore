@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Add these lines
+backend/data/un_docs/*.pdf      # PDFs are large — re-downloadable
+backend/data/chroma_db/         # ← REMOVE this if it was ignored before
+                                 #   we WANT to commit chroma_db/
+__pycache__/
+*.pyc
+.env
+.venv/

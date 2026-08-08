@@ -76,3 +76,38 @@ def run_analysis():
         ],
         "trend_report": result["trend_report"],
     }
+
+@app.get("/events/summarized")
+def get_summarized_events():
+    """
+    Returns GeoJSON with full classifications + AI summaries merged in.
+    The frontend calls this for the pin popup drawer.
+    """
+    events = json.loads(MOCK_DATA.read_text())
+
+    # Merge classifier cache
+    clf_cache_path = Path(__file__).parent / "data" / "classifier_cache.json"
+    clf_cache = json.loads(clf_cache_path.read_text()) if clf_cache_path.exists() else {}
+
+    # Merge summary cache
+    sum_cache_path = Path(__file__).parent / "data" / "summary_cache.json"
+    sum_cache = json.loads(sum_cache_path.read_text()) if sum_cache_path.exists() else {}
+
+    for e in events:
+        if e["id"] in clf_cache:
+            hit = clf_cache[e["id"]]
+            e.update({"category": hit.get("category","other"),
+                       "urgency":  hit.get("urgency","watch"),
+                       "sdg_tags": hit.get("sdg_tags",[])})
+        if e["id"] in sum_cache:
+            e["summary"] = sum_cache[e["id"]]
+
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [e["lng"], e["lat"]]},
+            "properties": {k: v for k, v in e.items() if k not in ("lat","lng")},
+        }
+        for e in events
+    ]
+    return {"type": "FeatureCollection", "features": features}
