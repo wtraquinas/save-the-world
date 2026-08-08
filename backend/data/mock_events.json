@@ -1,0 +1,252 @@
+[
+  {
+    "id": "evt_001",
+    "title": "Flash floods displace 40,000 in Bangladesh",
+    "source": "Reuters",
+    "url": "https://example.com/1",
+    "published_at": "2026-08-05T08:00:00Z",
+    "body": "Severe monsoon flooding has displaced tens of thousands in the Sylhet region...",
+    "country": "BD", "region": "South Asia",
+    "lat": 24.89, "lng": 91.87,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_002",
+    "title": "Cholera outbreak reported in Sudan refugee camps",
+    "source": "WHO",
+    "url": "https://example.com/2",
+    "published_at": "2026-08-05T09:00:00Z",
+    "body": "WHO confirms cholera cases in camps near Port Sudan following infrastructure collapse...",
+    "country": "SD", "region": "Eastern Africa",
+    "lat": 19.61, "lng": 37.21,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_003",
+    "title": "Wildfires spread across southern Greece",
+    "source": "AP",
+    "url": "https://example.com/3",
+    "published_at": "2026-08-05T10:00:00Z",
+    "body": "Firefighters battle multiple fronts as heatwave-driven fires reach suburbs of Athens...",
+    "country": "GR", "region": "Southern Europe",
+    "lat": 37.97, "lng": 23.72,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_004",
+    "title": "Armed conflict escalates in eastern DRC",
+    "source": "OCHA",
+    "url": "https://example.com/4",
+    "published_at": "2026-08-05T07:00:00Z",
+    "body": "Clashes between armed groups and national forces intensify near Goma...",
+    "country": "CD", "region": "Central Africa",
+    "lat": -1.67, "lng": 29.22,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_005",
+    "title": "Food insecurity reaches crisis level in Somalia",
+    "source": "WFP",
+    "url": "https://example.com/5",
+    "published_at": "2026-08-04T12:00:00Z",
+    "body": "WFP warns that 4.3 million people face acute food insecurity amid drought...",
+    "country": "SO", "region": "Eastern Africa",
+    "lat": 5.15, "lng": 46.19,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_006",
+    "title": "Earthquake M6.4 strikes northern Morocco",
+    "source": "USGS",
+    "url": "https://example.com/6",
+    "published_at": "2026-08-04T03:15:00Z",
+    "body": "A magnitude 6.4 earthquake has caused building collapses in the Al Hoceima region...",
+    "country": "MA", "region": "North Africa",
+    "lat": 35.24, "lng": -3.93,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_007",
+    "title": "Dengue fever surge overwhelms hospitals in Brazil",
+    "source": "PAHO",
+    "url": "https://example.com/7",
+    "published_at": "2026-08-03T16:00:00Z",
+    "body": "Brazil records record dengue cases with ICU capacity at 95% in São Paulo state...",
+    "country": "BR", "region": "South America",
+    "lat": -14.23, "lng": -51.92,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_008",
+    "title": "Myanmar conflict forces 200,000 to flee Rakhine",
+    "source": "UNHCR",
+    "url": "https://example.com/8",
+    "published_at": "2026-08-03T11:00:00Z",
+    "body": "Renewed fighting between military and resistance forces triggers mass displacement...",
+    "country": "MM", "region": "Southeast Asia",
+    "lat": 20.79, "lng": 96.15,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_009",
+    "title": "Arctic ice sheet melt accelerates — record low July",
+    "source": "NSIDC",
+    "url": "https://example.com/9",
+    "published_at": "2026-08-02T08:00:00Z",
+    "body": "Scientists record the lowest Arctic sea ice extent for July since satellite observation began...",
+    "country": "NO", "region": "Arctic",
+    "lat": 78.22, "lng": 15.65,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  },
+  {
+    "id": "evt_010",
+    "title": "Gaza humanitarian corridor blocked for third week",
+    "source": "UN OCHA",
+    "url": "https://example.com/10",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "PS", "region": "Middle East",
+    "lat": 31.35, "lng": 34.30,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_011",
+    "title": "Haiti colera outbreak following earthquake",
+    "source": "UN AM",
+    "url": "https://example.com/11",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "HT", "region": "Caribbean",
+    "lat": 18.53, "lng": -72.34,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_012",
+    "title": "Ukraine major attack on Donetsk region",
+    "source": "UN EU",
+    "url": "https://example.com/12",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "UK", "region": "East Europe",
+    "lat": 48.85, "lng": 37.62,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_013",
+    "title": "Pakistan flood emergency declared in Sindh province",
+    "source": "UN ASEAN",
+    "url": "https://example.com/13",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "PK", "region": "Asia",
+    "lat": 25.20, "lng": 69.38,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_014",
+    "title": "Indonesia earthquake hits major city",
+    "source": "UN ASIA",
+    "url": "https://example.com/14",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "ID", "region": "Asia",
+    "lat": 5.87, "lng": 122.52,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_015",
+    "title": "Ethiopia conflict escalates",
+    "source": "UN AFRICA",
+    "url": "https://example.com/15",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "ET", "region": "Africa",
+    "lat": 9.15, "lng": 38.76,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_016",
+    "title": "Philippines earthquake hits major city",
+    "source": "UN ASIA",
+    "url": "https://example.com/16",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "PH", "region": "Asia",
+    "lat": 12.87, "lng": 121.77,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_017",
+    "title": "Yemen conflict escalates",
+    "source": "UN ME",
+    "url": "https://example.com/17",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "YE", "region": "Middle East",
+    "lat": 15.38, "lng": 44.21,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_018",
+    "title": "Mali conflict escalates",
+    "source": "UN AFRICA",
+    "url": "https://example.com/18",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "ML", "region": "Africa",
+    "lat": 17.57, "lng": -3.99,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_019",
+    "title": "Venezuela economic crisis deepens",
+    "source": "UN AM",
+    "url": "https://example.com/19",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "VE", "region": "South America",
+    "lat": 6.42, "lng": -66.59,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+  ,
+  {
+    "id": "evt_020",
+    "title": "India monsoon floods displace thousands",
+    "source": "UN ASIA",
+    "url": "https://example.com/20",
+    "published_at": "2026-08-05T06:00:00Z",
+    "body": "Aid convoys remain stalled as access negotiations continue with limited progress...",
+    "country": "IN", "region": "Asia",
+    "lat": 20.18, "lng": 78.96,
+    "category": null, "urgency": null,
+    "summary": null, "sdg_tags": [], "trend_signal": null, "solutions": []
+  }
+]
