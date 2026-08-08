@@ -1,13 +1,12 @@
-# render.yaml  (commit this to the repo root)
 services:
   - type: web
     name: save-the-world-api
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
-        sync: false          # you'll paste this in the Render dashboard
+        sync: false
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.9"
