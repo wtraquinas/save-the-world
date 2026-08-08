@@ -12,7 +12,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://save-the-world.vercel.app",
+        "https://save-the-world-mu.vercel.app",
         "https://*.vercel.app",   # covers preview deployments
     ],  # Vite dev server
     allow_methods=["*"],

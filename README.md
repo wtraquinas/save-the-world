@@ -5,8 +5,15 @@ Did you ever ask yourself :
 <br>
 
 ---
+## Deployment
 
+- 🌍 Frontend: https://save-the-world-mu.vercel.app
+- ⚙️ Backend: https://save-the-world-pxbs.onrender.com
+- 📦 Repo: https://github.com/wtraquinas/save-the-world
 
+<br>
+
+---
 ## Architecture
 
 (insert image)
