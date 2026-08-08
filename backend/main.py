@@ -111,3 +111,64 @@ def get_summarized_events():
         for e in events
     ]
     return {"type": "FeatureCollection", "features": features}
+
+@app.get("/trends")
+def get_trends():
+    """Latest trend report from the most recent analysis run."""
+    cache_path = Path(__file__).parent / "data" / "trend_cache.json"
+    if not cache_path.exists():
+        return {"message": "No trend data yet. Run POST /analyze first."}
+    cache = json.loads(cache_path.read_text())
+    if not cache:
+        return {"message": "No trend data yet. Run POST /analyze first."}
+    # Return the most recently generated report
+    latest = max(cache.values(), key=lambda x: x.get("generated_at", ""))
+    return latest
+
+
+@app.get("/solutions")
+def get_solutions():
+    """All solution proposals from the most recent analysis run."""
+    cache_path = Path(__file__).parent / "data" / "solution_cache.json"
+    if not cache_path.exists():
+        return {"proposals": [], "message": "No solutions yet. Run POST /analyze first."}
+    cache = json.loads(cache_path.read_text())
+    # Reshape cache into list for frontend
+    proposals = [
+        {"pattern": k.replace("_", " ").title(), "solutions": v}
+        for k, v in cache.items()
+    ]
+    return {"proposals": proposals, "total": len(proposals)}
+
+
+@app.post("/analyze")
+def run_analysis():
+    """Full LangGraph pipeline — updated to return trend + solutions."""
+    events = json.loads(MOCK_DATA.read_text())
+    initial_state: AgentState = {
+        "raw_events": events,
+        "ingested_events": [],
+        "classified_events": [],
+        "summarized_events": [],
+        "trend_report": None,
+        "solution_proposals": [],
+        "current_batch": [e["id"] for e in events],
+        "errors": [],
+        "requires_human_review": False,
+        "human_approved": False,
+        "run_id": str(__import__("uuid").uuid4()),
+        "started_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+    }
+    result = app_graph.invoke(initial_state)
+    trend = result.get("trend_report", {})
+    return {
+        "run_id":            result["run_id"],
+        "events_processed":  len(result["summarized_events"] or result["classified_events"]),
+        "crisis_count":      trend.get("crisis_count", 0),
+        "alert_count":       trend.get("alert_count", 0),
+        "hotspots":          trend.get("hotspots", []),
+        "dominant_category": trend.get("dominant_category", ""),
+        "patterns_found":    len(trend.get("patterns", [])),
+        "solutions_generated": len(result.get("solution_proposals", [])),
+        "forecast":          trend.get("forecast", ""),
+    }
