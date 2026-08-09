@@ -11,6 +11,12 @@
 
 ## 🚀 Live Demo
 
+<br>
+
+<center>
+<img src="./images/UN AI Situation Room - Screenshot 20260809.jpg"></img>
+</center>
+
 | Service | URL |
 |---|---|
 | Frontend | https://save-the-world-mu.vercel.app |
@@ -18,6 +24,13 @@
 | Health check | https://save-the-world-pxbs.onrender.com/health |
 
 ## 🏗 Architecture
+
+<br>
+
+<center>
+<img src="./images/save_the_world_architecture.png"></img>
+</center>
+
 
 ```
 Data Sources (GDELT, UN RSS, ReliefWeb, Mock)
