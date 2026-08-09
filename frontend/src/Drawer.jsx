@@ -1,4 +1,5 @@
 import { URGENCY_COLORS, URGENCY_LABELS, CATEGORY_COLORS } from "./constants"
+import { formatDate } from "./utils"
 
 export default function Drawer({ event, onClose }) {
   return (
@@ -45,8 +46,17 @@ export default function Drawer({ event, onClose }) {
       </div>
 
       {/* Meta */}
-      <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 14 }}>
-        📍 {event.region} · {event.country} &nbsp;|&nbsp; 🗞 {event.source}
+      <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 14,
+                    display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        <span>📍 {event.region} · {event.country}</span>
+        <span style={{ color: "#374151" }}>|</span>
+        <span>🗞 {event.source}</span>
+        {event.published_at && (
+          <>
+            <span style={{ color: "#374151" }}>|</span>
+            <span>🕐 {formatDate(event.published_at)}</span>
+          </>
+        )}
       </div>
 
       {/* AI Summary */}

@@ -45,6 +45,13 @@ export default function Sidebar({ events, onSelect, selected }) {
             <span style={{ fontSize: 10, color: "#6B7280" }}>·</span>
             <span style={{ fontSize: 10, color: "#6B7280" }}>{event.region}</span>
           </div>
+
+          {event.published_at && (
+            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 3 }}>
+              🕐 {formatDate(event.published_at)}
+            </div>
+          )}
+
           {event.sdg_tags?.length > 0 && (
             <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 3 }}>
               {event.sdg_tags.slice(0, 3).map(tag => (

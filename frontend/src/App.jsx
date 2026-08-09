@@ -11,6 +11,8 @@ import DemoToggle from "./DemoToggle"
 import L from "leaflet"
 import { Marker } from "react-leaflet"
 
+import { formatDate } from "./utils"
+
 // Non-interactive glow marker — clicks pass through to CircleMarker below
 function GlowMarker({ position, icon }) {
   return (
@@ -258,13 +260,20 @@ export default function App() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>
                   📍 {event.region} &nbsp;·&nbsp; 🗞 {event.source}
                 </div>
 
+                {/* Date/time */}
+                {event.published_at && (
+                  <div style={{ fontSize: 11, color: "#4B5563" }}>
+                    🕐 {formatDate(event.published_at)}
+                  </div>
+                )}
+
                 {event.sdg_tags?.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap",
-                                gap: 3, marginBottom: 8 }}>
+                                gap: 3, marginTop: 8 }}>
                     {event.sdg_tags.slice(0, 3).map(tag => (
                       <span key={tag} style={{
                         fontSize: 9, padding: "1px 5px", borderRadius: 10,
@@ -276,20 +285,6 @@ export default function App() {
                     ))}
                   </div>
                 )}
-
-                <button
-                  onClick={() => handleSelect(event)}
-                  style={{
-                    width: "100%", fontSize: 11, padding: "6px 0",
-                    borderRadius: 6, cursor: "pointer",
-                    background: "rgba(55,138,221,0.15)",
-                    color: "#378ADD",
-                    border: "0.5px solid rgba(55,138,221,0.35)",
-                    transition: "background 0.15s",
-                  }}
-                >
-                  View full brief →
-                </button>
               </div>
             </Popup>
           </CircleMarker>
