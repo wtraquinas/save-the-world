@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar"
 import Drawer from "./Drawer"
 import TrendPanel from "./TrendPanel"
 import PulseLayer from "./PulseLayer"
+import DemoToggle from "./DemoToggle"
 
 export default function App() {
   const [events, setEvents]       = useState({})   // keyed by id
@@ -76,6 +77,11 @@ export default function App() {
             🚨 {crisisCount} CRISIS
           </span>
         )}
+
+        {/* after the crisis count badge */}
+        <DemoToggle />
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}></div>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button onClick={() => setShowTrends(!showTrends)} style={{

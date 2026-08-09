@@ -24,6 +24,19 @@ CLF_CACHE      = Path(__file__).parent / "data" / "classifier_cache.json"
 SUM_CACHE      = Path(__file__).parent / "data" / "summary_cache.json"
 TREND_CACHE    = Path(__file__).parent / "data" / "trend_cache.json"
 SOLUTION_CACHE = Path(__file__).parent / "data" / "solution_cache.json"
+LIVE_DATA  = Path(__file__).parent / "data" / "live_events.json"
+
+DEMO_MODE  = True   # ← set False to use real APIs in production
+
+
+# ── Helper ────────────────────────────────────────────────────────────────────
+def _get_events() -> list[dict]:              # ← ADD THIS BLOCK
+    if not DEMO_MODE and LIVE_DATA.exists():
+        live = json.loads(LIVE_DATA.read_text())
+        if live:
+            return live
+    return json.loads(MOCK_DATA.read_text())
+
 
 # ── WebSocket connection manager ──────────────────────────────────────────────
 
@@ -92,49 +105,6 @@ async def websocket_feed(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
-@app.post("/analyze")
-async def run_analysis():
-    """Runs full pipeline and broadcasts each classified event via WebSocket."""
-    events = json.loads(MOCK_DATA.read_text())
-    initial_state: AgentState = {
-        "raw_events": events,
-        "ingested_events": [],
-        "classified_events": [],
-        "summarized_events": [],
-        "trend_report": None,
-        "solution_proposals": [],
-        "current_batch": [e["id"] for e in events],
-        "errors": [],
-        "requires_human_review": False,
-        "human_approved": False,
-        "run_id": str(uuid.uuid4()),
-        "started_at": datetime.now(timezone.utc).isoformat(),
-    }
-    result = app_graph.invoke(initial_state)
-
-    # Broadcast each processed event to all connected WebSocket clients
-    processed = result.get("summarized_events") or result.get("classified_events", [])
-    for e in processed:
-        await manager.broadcast({"type": "event_updated", "data": e})
-
-    # Broadcast trend report
-    if result.get("trend_report"):
-        await manager.broadcast({"type": "trend_updated", "data": result["trend_report"]})
-
-    trend = result.get("trend_report", {})
-    return {
-        "run_id":              result["run_id"],
-        "events_processed":    len(processed),
-        "crisis_count":        trend.get("crisis_count", 0),
-        "alert_count":         trend.get("alert_count", 0),
-        "hotspots":            trend.get("hotspots", []),
-        "dominant_category":   trend.get("dominant_category", ""),
-        "patterns_found":      len(trend.get("patterns", [])),
-        "solutions_generated": len(result.get("solution_proposals", [])),
-        "forecast":            trend.get("forecast", ""),
-    }
-
-
 @app.get("/health")
 def health():
     return {"status": "ok", "message": "UN AI Situation Room is online"}
@@ -184,3 +154,71 @@ def get_solutions():
         for k, v in cache.items()
     ]
     return {"proposals": proposals, "total": len(proposals)}
+
+
+@app.get("/mode")
+def get_mode():
+    return {
+        "demo_mode": DEMO_MODE,
+        "live_events_available": LIVE_DATA.exists(),
+        "live_event_count": len(json.loads(LIVE_DATA.read_text())) if LIVE_DATA.exists() else 0,
+    }
+
+
+@app.post("/ingest")
+async def ingest_live():
+    """
+    Fetches real events from GDELT + UN RSS.
+    Saves to live_events.json — picked up by next /analyze call if DEMO_MODE=False.
+    """
+    from graph.agents.fetcher import fetch_live_events
+    try:
+        events = fetch_live_events(max_events=15)
+        # Broadcast new events to WebSocket clients
+        for e in events:
+            await manager.broadcast({"type": "event", "data": e})
+        return {
+            "status": "ok",
+            "fetched": len(events),
+            "sources": list(set(e["source"] for e in events)),
+        }
+    except Exception as ex:
+        return {"status": "error", "message": str(ex)}
+
+
+@app.post("/analyze")
+async def run_analysis():
+    events = _get_events()                        # ← respects DEMO_MODE
+    initial_state: AgentState = {
+        "raw_events": events,
+        "ingested_events": [],
+        "classified_events": [],
+        "summarized_events": [],
+        "trend_report": None,
+        "solution_proposals": [],
+        "current_batch": [e["id"] for e in events],
+        "errors": [],
+        "requires_human_review": False,
+        "human_approved": False,
+        "run_id": str(uuid.uuid4()),
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = app_graph.invoke(initial_state)
+    processed = result.get("summarized_events") or result.get("classified_events", [])
+    for e in processed:
+        await manager.broadcast({"type": "event_updated", "data": e})
+    if result.get("trend_report"):
+        await manager.broadcast({"type": "trend_updated", "data": result["trend_report"]})
+    trend = result.get("trend_report", {})
+    return {
+        "run_id":              result["run_id"],
+        "events_processed":    len(processed),
+        "crisis_count":        trend.get("crisis_count", 0),
+        "alert_count":         trend.get("alert_count", 0),
+        "hotspots":            trend.get("hotspots", []),
+        "dominant_category":   trend.get("dominant_category", ""),
+        "patterns_found":      len(trend.get("patterns", [])),
+        "solutions_generated": len(result.get("solution_proposals", [])),
+        "forecast":            trend.get("forecast", ""),
+        "demo_mode":           DEMO_MODE,
+    }

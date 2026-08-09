@@ -1,15 +1,143 @@
-# Save The World
-Did you ever ask yourself : 
-- "what a UN Situation Room would look like if it ran on AI."?
+
+
+
+# 🌍 UN AI Situation Room — Save the World
+
+> A LangGraph-powered humanitarian intelligence platform that monitors global crises,
+> analyses trends, and proposes UN-grounded solutions in real time.
+
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7)](https://save-the-world-pxbs.onrender.com/health)
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-000000)](https://save-the-world-mu.vercel.app)
+
+## 🚀 Live Demo
+
+| Service | URL |
+|---|---|
+| Frontend | https://save-the-world-mu.vercel.app |
+| Backend API | https://save-the-world-pxbs.onrender.com |
+| Health check | https://save-the-world-pxbs.onrender.com/health |
+
+## 🏗 Architecture
+
+```
+Data Sources (GDELT, UN RSS, ReliefWeb, Mock)
+↓
+LangGraph Orchestrator
+├── Ingestion Agent — fetch, dedupe, geo-tag
+├── Classifier Agent — category + urgency (GPT-4o-mini, batched)
+├── Summarizer Agent — RAG + UN docs → 3-sentence brief
+├── Trend Analyst — pattern detection + 30-day forecast
+└── Solution Bot — SDG-grounded proposals per crisis pattern
+↓
+FastAPI + WebSocket
+↓
+React Frontend
+├── World Map (Leaflet) — colour-coded pins, pulse rings on crisis events
+├── Crisis Feed Sidebar — live, sorted by urgency
+├── Event Drawer — AI brief, SDG tags, source excerpt
+└── Intelligence Panel — Trends · Patterns · Solutions tabs
+```
+
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| LLM | OpenAI GPT-4o-mini |
+| Orchestration | LangGraph 0.2 |
+| RAG | LangChain + ChromaDB |
+| Backend | FastAPI + WebSocket |
+| Frontend | React + Leaflet |
+| Deployment | Render (backend) + Vercel (frontend) |
+| Data | GDELT 2.0, UN News RSS, ReliefWeb RSS |
+
+## 🗓 Built in 7 Days
+
+| Day | What was built |
+|---|---|
+| 1 | Project scaffold, LangGraph skeleton, mock data, Leaflet map |
+| 2 | Ingestion + Classifier agents with caching |
+| 3 | RAG pipeline, ChromaDB, Summarizer agent |
+| 4 | Trend Analyst + Solution Bot agents |
+| 5 | FastAPI WebSocket, full frontend connected to all endpoints |
+| 6 | Pulse rings, Solutions panel, loading overlay |
+| 7 | GDELT + RSS ingestion, Demo mode, README |
+
+## 🔑 Environment Variables
+
+```bash
+# backend/.env
+OPENAI_API_KEY=sk-...
+```
+
+## 🏃 Run Locally
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Health check |
+| GET | `/events` | All events as GeoJSON |
+| GET | `/events/summarized` | Events with AI summaries |
+| GET | `/trends` | Latest trend report |
+| GET | `/solutions` | Solution proposals |
+| GET | `/mode` | Demo vs live mode |
+| POST | `/analyze` | Run full LangGraph pipeline |
+| POST | `/ingest` | Fetch live events from GDELT + RSS |
+| WS | `/ws/feed` | Live event stream |
+
+## 🌍 Crisis Categories
+
+| Colour | Category |
+|---|---|
+| 🔴 Red | Conflict |
+| 🔵 Blue | Climate |
+| 🟡 Amber | Famine |
+| 🟣 Purple | Disease |
+| 🟢 Teal | Displacement |
+
+## 📖 UN Knowledge Base
+
+The RAG pipeline is grounded in:
+- UN Sustainable Development Goals (SDGs 1–17)
+- UNHCR Global Compact on Refugees
+- OCHA Humanitarian Response frameworks
+- WHO epidemic response protocols
+- WFP food security intervention models
+
+
+
+---
+
+---
+
+<br>
 
 <br>
 
 ---
-## Deployment
 
-- 🌍 Frontend: https://save-the-world-mu.vercel.app
-- ⚙️ Backend: https://save-the-world-pxbs.onrender.com
-- 📦 Repo: https://github.com/wtraquinas/save-the-world
+---
+
+# FIRST README
+
+---
+
+# Save The World
+Did you ever ask yourself : 
+- "what a UN Situation Room would look like if it ran on AI."?
 
 <br>
 
