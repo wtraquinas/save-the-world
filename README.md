@@ -144,22 +144,9 @@ The RAG pipeline is grounded in:
 
 ---
 
-# FIRST README
+# more from FIRST README
 
----
-
-# Save The World
-Did you ever ask yourself : 
-- "what a UN Situation Room would look like if it ran on AI."?
-
-<br>
-
----
-## Architecture
-
-(insert image)
-
-<br>
+...
 
 ---
 
