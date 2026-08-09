@@ -228,59 +228,75 @@ async def run_analysis():
 
 @app.get("/debug/ingest")
 async def debug_ingest():
-    """Shows exactly what each data source returns and any errors."""
-    from graph.agents.fetcher import (
-        fetch_gdelt_events,
-        fetch_reliefweb_events,
-        fetch_rss_events,
-    )
-    import traceback
-
+    import httpx, traceback
     results = {}
 
-    # Test GDELT
+    # ── GDELT raw check ───────────────────────────────────────────────────────
     try:
-        gdelt = fetch_gdelt_events(max_events=3)
+        r = httpx.get(
+            "https://api.gdeltproject.org/api/v2/doc/doc",
+            params={
+                "query": "humanitarian crisis flood conflict",
+                "mode": "artlist",
+                "maxrecords": 5,
+                "format": "json",
+                "timespan": "24h",
+            },
+            timeout=15,
+        )
+        data = r.json()
+        articles = data.get("articles", [])
         results["gdelt"] = {
-            "status": "ok",
-            "count": len(gdelt),
-            "sample": gdelt[0]["title"] if gdelt else None,
+            "status":        "ok",
+            "raw_count":     len(articles),
+            "sample_titles": [a.get("title","") for a in articles[:5]],
         }
     except Exception as e:
-        results["gdelt"] = {
-            "status": "error",
-            "error": str(e),
-            "trace": traceback.format_exc(),
-        }
+        results["gdelt"] = {"status": "error", "error": str(e)}
 
-    # Test ReliefWeb
+    # ── ReliefWeb raw check ───────────────────────────────────────────────────
     try:
-        rw = fetch_reliefweb_events(max_events=3)
+        r = httpx.post(
+            "https://api.reliefweb.int/v1/reports",
+            json={
+                "appname": "un-ai-situation-room",
+                "limit": 5,
+                "fields": {"include": ["title", "country", "date", "source"]},
+                "sort": ["date:desc"],
+            },
+            timeout=15,
+        )
+        data = r.json()
+        items = data.get("data", [])
         results["reliefweb"] = {
-            "status": "ok",
-            "count": len(rw),
-            "sample": rw[0]["title"] if rw else None,
+            "status":    "ok",
+            "raw_count": len(items),
+            "sample":    [
+                {
+                    "title":   i["fields"].get("title",""),
+                    "country": i["fields"].get("country",""),
+                }
+                for i in items[:5]
+            ],
         }
     except Exception as e:
-        results["reliefweb"] = {
-            "status": "error",
-            "error": str(e),
-            "trace": traceback.format_exc(),
-        }
+        results["reliefweb"] = {"status": "error", "error": str(e)}
 
-    # Test UN RSS
+    # ── UN RSS raw check ──────────────────────────────────────────────────────
     try:
-        rss = fetch_rss_events(max_per_feed=3)
+        from xml.etree import ElementTree as ET
+        r = httpx.get(
+            "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+            timeout=15, follow_redirects=True,
+        )
+        root = ET.fromstring(r.content)
+        items = root.findall(".//item")[:5]
         results["un_rss"] = {
-            "status": "ok",
-            "count": len(rss),
-            "sample": rss[0]["title"] if rss else None,
+            "status":    "ok",
+            "raw_count": len(items),
+            "titles":    [i.findtext("title","") for i in items],
         }
     except Exception as e:
-        results["un_rss"] = {
-            "status": "error",
-            "error": str(e),
-            "trace": traceback.format_exc(),
-        }
+        results["un_rss"] = {"status": "error", "error": str(e)}
 
     return results
