@@ -222,3 +222,65 @@ async def run_analysis():
         "forecast":            trend.get("forecast", ""),
         "demo_mode":           DEMO_MODE,
     }
+
+
+# Add this temporary debug endpoint to backend/main.py
+
+@app.get("/debug/ingest")
+async def debug_ingest():
+    """Shows exactly what each data source returns and any errors."""
+    from graph.agents.fetcher import (
+        fetch_gdelt_events,
+        fetch_reliefweb_events,
+        fetch_rss_events,
+    )
+    import traceback
+
+    results = {}
+
+    # Test GDELT
+    try:
+        gdelt = fetch_gdelt_events(max_events=3)
+        results["gdelt"] = {
+            "status": "ok",
+            "count": len(gdelt),
+            "sample": gdelt[0]["title"] if gdelt else None,
+        }
+    except Exception as e:
+        results["gdelt"] = {
+            "status": "error",
+            "error": str(e),
+            "trace": traceback.format_exc(),
+        }
+
+    # Test ReliefWeb
+    try:
+        rw = fetch_reliefweb_events(max_events=3)
+        results["reliefweb"] = {
+            "status": "ok",
+            "count": len(rw),
+            "sample": rw[0]["title"] if rw else None,
+        }
+    except Exception as e:
+        results["reliefweb"] = {
+            "status": "error",
+            "error": str(e),
+            "trace": traceback.format_exc(),
+        }
+
+    # Test UN RSS
+    try:
+        rss = fetch_rss_events(max_per_feed=3)
+        results["un_rss"] = {
+            "status": "ok",
+            "count": len(rss),
+            "sample": rss[0]["title"] if rss else None,
+        }
+    except Exception as e:
+        results["un_rss"] = {
+            "status": "error",
+            "error": str(e),
+            "trace": traceback.format_exc(),
+        }
+
+    return results
