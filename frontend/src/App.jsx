@@ -6,6 +6,7 @@ import { useWebSocket } from "./useWebSocket"
 import Sidebar from "./Sidebar"
 import Drawer from "./Drawer"
 import TrendPanel from "./TrendPanel"
+import PulseLayer from "./PulseLayer"
 
 export default function App() {
   const [events, setEvents]       = useState({})   // keyed by id
@@ -132,6 +133,8 @@ export default function App() {
             </Popup>
           </CircleMarker>
         ))}
+        {/* Pulse rings on crisis events */}
+        <PulseLayer events={eventList.filter(e => e.urgency === "crisis")} />
       </MapContainer>
 
       {/* ── Left sidebar — crisis feed ── */}
@@ -190,6 +193,39 @@ export default function App() {
           </div>
         ))}
       </div>
+      {/* ── Loading overlay — shows until WS sends first event ── */}
+      {!wsReady && Object.keys(events).length === 0 && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 2000,
+          background: "rgba(13,17,23,0.85)", backdropFilter: "blur(4px)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 16,
+        }}>
+          <div style={{ fontSize: 48 }}>🌍</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#e6edf3" }}>
+            UN AI Situation Room
+          </div>
+          <div style={{ fontSize: 13, color: "#6B7280" }}>
+            Connecting to live feed...
+          </div>
+          <div style={{
+            width: 200, height: 2, background: "rgba(255,255,255,0.06)",
+            borderRadius: 1, overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%", width: "40%", borderRadius: 1,
+              background: "#1D9E75",
+              animation: "slide 1.2s ease-in-out infinite",
+            }} />
+          </div>
+          <style>{`
+            @keyframes slide {
+              0%   { transform: translateX(-100%); }
+              100% { transform: translateX(600%); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   )
 }
