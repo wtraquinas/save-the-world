@@ -30,11 +30,17 @@ DEMO_MODE  = False   # ← set True for Demo Mode or False to use real APIs in p
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────
-def _get_events() -> list[dict]:              # ← ADD THIS BLOCK
-    if not DEMO_MODE and LIVE_DATA.exists():
-        live = json.loads(LIVE_DATA.read_text())
-        if live:
-            return live
+def _get_events() -> list[dict]:
+    if not DEMO_MODE:
+        if LIVE_DATA.exists():
+            try:
+                live = json.loads(LIVE_DATA.read_text())
+                if live:
+                    print(f"[EVENTS] Using {len(live)} live events")
+                    return live
+            except Exception:
+                pass
+        print("[EVENTS] ⚠️ No live data yet — using mock data as fallback")
     return json.loads(MOCK_DATA.read_text())
 
 
@@ -300,3 +306,23 @@ async def debug_ingest():
         results["un_rss"] = {"status": "error", "error": str(e)}
 
     return results
+
+# ── Startup event ─────────────────────────────────────────────────────────────
+@app.on_event("startup")
+async def startup_fetch():
+    """
+    Auto-fetches live events when the server starts.
+    Runs in background so it doesn't block the server from accepting requests.
+    """
+    import asyncio
+    async def _fetch():
+        await asyncio.sleep(3)   # wait for server to fully start
+        print("[STARTUP] 🌍 Auto-fetching live events...")
+        try:
+            from graph.agents.fetcher import fetch_live_events
+            events = fetch_live_events(max_events=15)
+            print(f"[STARTUP] ✅ {len(events)} live events ready")
+        except Exception as e:
+            print(f"[STARTUP] ⚠️ Auto-fetch failed: {e} — mock data will be used")
+
+    asyncio.create_task(_fetch())
