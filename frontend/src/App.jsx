@@ -8,6 +8,22 @@ import Drawer from "./Drawer"
 import TrendPanel from "./TrendPanel"
 import DemoToggle from "./DemoToggle"
 
+import L from "leaflet"
+import { Marker } from "react-leaflet"
+
+// Non-interactive glow marker — clicks pass through to CircleMarker below
+function GlowMarker({ position, icon }) {
+  return (
+    <Marker
+      position={position}
+      icon={icon}
+      interactive={false}
+      keyboard={false}
+      zIndexOffset={-1000}   // always behind the real pin
+    />
+  )
+}
+
 export default function App() {
   const [events, setEvents]       = useState({})   // keyed by id
   const [selected, setSelected]   = useState(null)
@@ -50,13 +66,49 @@ export default function App() {
     const marker = markerRefs.current[event.id]
     if (marker) {
       marker.openPopup()
-      marker._map?.flyTo([event.lat, event.lng], 5, { duration: 1 })
+      marker._map?.flyTo([event.lat, event.lng], 4, { duration: 1.2 })  // 4 not 5
     }
   }, [])
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw" }}>
-
+      {/* Global CSS for glow pulse animation */}
+      <style>{`
+        .pulse-ring {
+          border-radius: 50%;
+          position: absolute;
+          inset: 0;
+          animation: glow-pulse 2.2s ease-out infinite;
+        }
+        .pulse-ring-2 {
+          border-radius: 50%;
+          position: absolute;
+          inset: 20%;
+          animation: glow-pulse 2.2s ease-out infinite 0.7s;
+        }
+        @keyframes glow-pulse {
+          0%   { transform: scale(0.7); opacity: 0.5; }
+          70%  { transform: scale(1.8); opacity: 0;   }
+          100% { transform: scale(0.7); opacity: 0;   }
+        }
+        .leaflet-popup-content-wrapper {
+          background: #1a1f2e !important;
+          border: 0.5px solid rgba(255,255,255,0.12) !important;
+          border-radius: 10px !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+          padding: 0 !important;
+        }
+        .leaflet-popup-content {
+          margin: 0 !important;
+          padding: 12px 14px !important;
+        }
+        .leaflet-popup-tip {
+          background: #1a1f2e !important;
+        }
+        .leaflet-popup-tip-container {
+          filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+        }
+      `}</style>
       {/* ── Header ── */}
       <header style={{
         position: "absolute", top: 0, left: 0, right: 0, zIndex: 1000,
@@ -128,79 +180,91 @@ export default function App() {
           attribution='&copy; <a href="https://carto.com">CARTO</a>'
         />
 
-        {/* Pulse rings — large faded circles behind crisis pins, clicks pass through */}
+        {/* Glow pulse rings — divIcon with interactive:false so clicks pass through */}
         {eventList
           .filter(e => e.urgency === "crisis")
-          .map(event => (
-            <CircleMarker
-              key={`pulse-${event.id}`}
-              center={[event.lat, event.lng]}
-              radius={22}
-              pathOptions={{
-                color:       CATEGORY_COLORS[event.category] ?? "#E24B4A",
-                fillColor:   CATEGORY_COLORS[event.category] ?? "#E24B4A",
-                fillOpacity: 0.12,
-                weight:      1,
-                dashArray:   "4 4",
-              }}
-              interactive={false}
-            />
-          ))
+          .map(event => {
+            const color = CATEGORY_COLORS[event.category] ?? "#E24B4A"
+            const glowIcon = L.divIcon({
+              className: "",
+              html: `
+                <div style="
+                  position: relative;
+                  width: 48px;
+                  height: 48px;
+                ">
+                  <div class="pulse-ring" style="background:${color};opacity:0.15;"></div>
+                  <div class="pulse-ring-2" style="background:${color};opacity:0.2;"></div>
+                </div>
+              `,
+              iconSize:   [48, 48],
+              iconAnchor: [24, 24],
+            })
+            return (
+              <GlowMarker
+                key={`glow-${event.id}`}
+                position={[event.lat, event.lng]}
+                icon={glowIcon}
+              />
+            )
+          })
         }
 
-        {/* Actual event pins */}
+        {/* Event pins */}
         {eventList.map(event => (
           <CircleMarker
             key={event.id}
             center={[event.lat, event.lng]}
-            radius={event.urgency === "crisis" ? 12 : event.urgency === "alert" ? 9 : 7}
+            radius={
+              event.urgency === "crisis" ? 11 :
+              event.urgency === "alert"  ?  8 : 6
+            }
             pathOptions={{
               color:       CATEGORY_COLORS[event.category] ?? "#6B7280",
               fillColor:   CATEGORY_COLORS[event.category] ?? "#6B7280",
-              fillOpacity: event.urgency === "crisis" ? 0.9 : 0.65,
-              weight:      event.urgency === "crisis" ? 2.5 : 1.5,
+              fillOpacity: event.urgency === "crisis" ? 0.95 : 0.7,
+              weight:      event.urgency === "crisis" ? 2    : 1.5,
             }}
             ref={marker => { if (marker) markerRefs.current[event.id] = marker }}
             eventHandlers={{ click: () => handleSelect(event) }}
           >
             <Popup>
-              <div style={{
-                minWidth: 180,
-                background: "#0d1117",
-                color: "#e6edf3",
-                borderRadius: 6,
-                padding: "4px 2px",
-              }}>
-                <div style={{ fontWeight: 600, fontSize: 13,
-                              lineHeight: 1.4, marginBottom: 6 }}>
+              <div style={{ minWidth: 190 }}>
+                <div style={{
+                  fontWeight: 600, fontSize: 13,
+                  lineHeight: 1.4, marginBottom: 8,
+                  color: "#e6edf3",
+                }}>
                   {event.title}
                 </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center",
-                              marginBottom: 4 }}>
+
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
                   <span style={{
-                    fontSize: 10, padding: "2px 6px", borderRadius: 10,
-                    background: `${URGENCY_COLORS[event.urgency]}22`,
-                    color: URGENCY_COLORS[event.urgency],
-                    border: `0.5px solid ${URGENCY_COLORS[event.urgency]}`,
+                    fontSize: 10, padding: "2px 7px", borderRadius: 10,
+                    background: `${URGENCY_COLORS[event.urgency] ?? "#6B7280"}22`,
+                    color:       URGENCY_COLORS[event.urgency] ?? "#6B7280",
+                    border:     `0.5px solid ${URGENCY_COLORS[event.urgency] ?? "#6B7280"}`,
                     fontWeight: 600,
                   }}>
-                    {URGENCY_LABELS[event.urgency]}
+                    {URGENCY_LABELS[event.urgency] ?? event.urgency}
                   </span>
                   <span style={{
-                    fontSize: 10, padding: "2px 6px", borderRadius: 10,
+                    fontSize: 10, padding: "2px 7px", borderRadius: 10,
                     background: `${CATEGORY_COLORS[event.category] ?? "#6B7280"}22`,
-                    color: CATEGORY_COLORS[event.category] ?? "#6B7280",
-                    border: `0.5px solid ${CATEGORY_COLORS[event.category] ?? "#6B7280"}55`,
+                    color:       CATEGORY_COLORS[event.category] ?? "#6B7280",
+                    border:     `0.5px solid ${CATEGORY_COLORS[event.category] ?? "#6B7280"}55`,
                   }}>
                     {event.category}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: "#6B7280" }}>
-                  📍 {event.region} · 🗞 {event.source}
+
+                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8 }}>
+                  📍 {event.region} &nbsp;·&nbsp; 🗞 {event.source}
                 </div>
+
                 {event.sdg_tags?.length > 0 && (
-                  <div style={{ marginTop: 6, display: "flex",
-                                flexWrap: "wrap", gap: 3 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap",
+                                gap: 3, marginBottom: 8 }}>
                     {event.sdg_tags.slice(0, 3).map(tag => (
                       <span key={tag} style={{
                         fontSize: 9, padding: "1px 5px", borderRadius: 10,
@@ -212,13 +276,16 @@ export default function App() {
                     ))}
                   </div>
                 )}
+
                 <button
                   onClick={() => handleSelect(event)}
                   style={{
-                    marginTop: 8, width: "100%", fontSize: 11,
-                    padding: "5px 0", borderRadius: 6, cursor: "pointer",
-                    background: "rgba(55,138,221,0.15)", color: "#378ADD",
-                    border: "0.5px solid rgba(55,138,221,0.3)",
+                    width: "100%", fontSize: 11, padding: "6px 0",
+                    borderRadius: 6, cursor: "pointer",
+                    background: "rgba(55,138,221,0.15)",
+                    color: "#378ADD",
+                    border: "0.5px solid rgba(55,138,221,0.35)",
+                    transition: "background 0.15s",
                   }}
                 >
                   View full brief →
