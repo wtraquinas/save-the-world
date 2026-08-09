@@ -1,4 +1,5 @@
 import { URGENCY_COLORS, URGENCY_LABELS, CATEGORY_COLORS } from "./constants"
+import { formatDate } from "./utils"
 
 export default function Sidebar({ events, onSelect, selected }) {
   const sorted = [...events].sort((a, b) => {
