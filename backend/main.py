@@ -26,7 +26,7 @@ TREND_CACHE    = Path(__file__).parent / "data" / "trend_cache.json"
 SOLUTION_CACHE = Path(__file__).parent / "data" / "solution_cache.json"
 LIVE_DATA  = Path(__file__).parent / "data" / "live_events.json"
 
-DEMO_MODE  = True   # ← set False to use real APIs in production
+DEMO_MODE  = False   # ← set True for Demo Mode or False to use real APIs in production
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────
