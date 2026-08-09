@@ -153,16 +153,40 @@ export default function App() {
 
       {/* ── Legend ── */}
       <div style={{
-        position: "absolute", bottom: 24, left: 16, zIndex: 1000,
+        position: "absolute", bottom: 24, right: 16, zIndex: 1000,  // ← right: 16 instead of left: 16
         background: "rgba(13,17,23,0.85)", backdropFilter: "blur(8px)",
         border: "0.5px solid rgba(255,255,255,0.08)",
         borderRadius: 8, padding: "10px 14px",
       }}>
+        <div style={{ fontSize: 11, color: "#6B7280", fontWeight: 600,
+                      letterSpacing: "0.06em", marginBottom: 6 }}>
+          CATEGORY
+        </div>
         {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
           <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6,
-                                   fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>
+                                  fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
             {cat.charAt(0).toUpperCase() + cat.slice(1)}
+          </div>
+        ))}
+        {/* Add urgency size guide */}
+        <div style={{ fontSize: 11, color: "#6B7280", fontWeight: 600,
+                      letterSpacing: "0.06em", margin: "8px 0 6px" }}>
+          URGENCY
+        </div>
+        {[
+          { label: "Crisis",  size: 12, color: "#E24B4A" },
+          { label: "Alert",   size: 9,  color: "#EF9F27" },
+          { label: "Watch",   size: 7,  color: "#1D9E75" },
+        ].map(u => (
+          <div key={u.label} style={{ display: "flex", alignItems: "center", gap: 6,
+                                      fontSize: 11, color: "#9ca3af", marginBottom: 3 }}>
+            <div style={{
+              width: u.size, height: u.size, borderRadius: "50%",
+              background: u.color, flexShrink: 0,
+              marginLeft: (12 - u.size) / 2,   // centre-align different sizes
+            }} />
+            {u.label}
           </div>
         ))}
       </div>
