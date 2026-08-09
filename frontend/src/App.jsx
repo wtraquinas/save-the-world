@@ -155,7 +155,7 @@ export default function App() {
             background: showTrends ? "rgba(55,138,221,0.3)" : "rgba(255,255,255,0.05)",
             color: "#e6edf3", border: "0.5px solid rgba(255,255,255,0.15)",
           }}>
-            📊 Trends
+            📊 Global Intelligence
           </button>
 
           <button onClick={runAnalysis} disabled={analyzing} style={{
