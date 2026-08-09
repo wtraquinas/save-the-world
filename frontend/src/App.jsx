@@ -16,7 +16,8 @@ export default function App() {
   const [showTrends, setShowTrends] = useState(false)
 
   const onEvent = useCallback((e) => {
-    setEvents(prev => ({ ...prev, [e.id]: e }))
+      console.log("[EVENT]", e.id, e.category, e.urgency)  // ← add this
+      setEvents(prev => ({ ...prev, [e.id]: e }))
   }, [])
 
   const onTrend = useCallback((t) => setTrends(t), [])

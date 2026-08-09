@@ -55,30 +55,35 @@ manager = ConnectionManager()
 
 @app.websocket("/ws/feed")
 async def websocket_feed(websocket: WebSocket):
-    """
-    Streams events one by one to connected clients.
-    On connect: replays all cached events immediately.
-    Then keeps connection open for future pushes.
-    """
     await manager.connect(websocket)
     try:
-        # Replay existing events on connect so the map populates instantly
+        # Load all caches
         events = json.loads(MOCK_DATA.read_text())
-        clf    = json.loads(CLF_CACHE.read_text()) if CLF_CACHE.exists() else {}
-        sums   = json.loads(SUM_CACHE.read_text()) if SUM_CACHE.exists() else {}
+        clf  = json.loads(CLF_CACHE.read_text())  if CLF_CACHE.exists()  else {}
+        sums = json.loads(SUM_CACHE.read_text())  if SUM_CACHE.exists()  else {}
 
-        for i, e in enumerate(events):
-            if e["id"] in clf:
-                e.update(clf[e["id"]])
-            if e["id"] in sums:
-                e["summary"] = sums[e["id"]]
+        for event in events:
+            # Merge classifier results
+            if event["id"] in clf:
+                hit = clf[event["id"]]
+                event["category"] = hit.get("category", "other")
+                event["urgency"]  = hit.get("urgency",  "watch")
+                event["sdg_tags"] = hit.get("sdg_tags", [])
+            else:
+                event["category"] = "other"
+                event["urgency"]  = "watch"
+                event["sdg_tags"] = []
 
-            await websocket.send_json({"type": "event", "data": e})
-            await asyncio.sleep(0.3)   # stagger so pins animate in one by one
+            # Merge summary
+            if event["id"] in sums:
+                event["summary"] = sums[event["id"]]
+
+            await websocket.send_json({"type": "event", "data": event})
+            await asyncio.sleep(0.3)
 
         await websocket.send_json({"type": "ready", "data": {"count": len(events)}})
 
-        # Keep alive — wait for disconnect
+        # Keep alive
         while True:
             await asyncio.sleep(30)
             await websocket.send_json({"type": "ping"})
