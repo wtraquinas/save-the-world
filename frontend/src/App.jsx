@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import { CATEGORY_COLORS, URGENCY_LABELS, URGENCY_COLORS, API } from "./constants"
@@ -6,7 +6,6 @@ import { useWebSocket } from "./useWebSocket"
 import Sidebar from "./Sidebar"
 import Drawer from "./Drawer"
 import TrendPanel from "./TrendPanel"
-import PulseLayer from "./PulseLayer"
 import DemoToggle from "./DemoToggle"
 
 export default function App() {
@@ -41,6 +40,19 @@ export default function App() {
 
   const eventList = Object.values(events)
   const crisisCount = eventList.filter(e => e.urgency === "crisis").length
+
+  const markerRefs = useRef({})
+  const mapRef = useRef(null)
+
+  // Update onSelect to fly to pin and open popup
+  const handleSelect = useCallback((event) => {
+    setSelected(event)
+    const marker = markerRefs.current[event.id]
+    if (marker) {
+      marker.openPopup()
+      marker._map?.flyTo([event.lat, event.lng], 5, { duration: 1 })
+    }
+  }, [])
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw" }}>
@@ -105,15 +117,38 @@ export default function App() {
 
       {/* ── Map ── */}
       <MapContainer
-        center={[20, 10]} zoom={2.5}
+        center={[20, 10]}
+        zoom={2.5}
         style={{ height: "100vh", width: "100%", background: "#0d1117" }}
         zoomControl={false}
+        whenCreated={map => { mapRef.current = map }}
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com">CARTO</a>'
         />
 
+        {/* Pulse rings — large faded circles behind crisis pins, clicks pass through */}
+        {eventList
+          .filter(e => e.urgency === "crisis")
+          .map(event => (
+            <CircleMarker
+              key={`pulse-${event.id}`}
+              center={[event.lat, event.lng]}
+              radius={22}
+              pathOptions={{
+                color:       CATEGORY_COLORS[event.category] ?? "#E24B4A",
+                fillColor:   CATEGORY_COLORS[event.category] ?? "#E24B4A",
+                fillOpacity: 0.12,
+                weight:      1,
+                dashArray:   "4 4",
+              }}
+              interactive={false}
+            />
+          ))
+        }
+
+        {/* Actual event pins */}
         {eventList.map(event => (
           <CircleMarker
             key={event.id}
@@ -125,28 +160,80 @@ export default function App() {
               fillOpacity: event.urgency === "crisis" ? 0.9 : 0.65,
               weight:      event.urgency === "crisis" ? 2.5 : 1.5,
             }}
-            eventHandlers={{ click: () => setSelected(event) }}
+            ref={marker => { if (marker) markerRefs.current[event.id] = marker }}
+            eventHandlers={{ click: () => handleSelect(event) }}
           >
             <Popup>
-              <div style={{ minWidth: 160 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
+              <div style={{
+                minWidth: 180,
+                background: "#0d1117",
+                color: "#e6edf3",
+                borderRadius: 6,
+                padding: "4px 2px",
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 13,
+                              lineHeight: 1.4, marginBottom: 6 }}>
                   {event.title}
                 </div>
-                <div style={{ fontSize: 11, color: URGENCY_COLORS[event.urgency] }}>
-                  {URGENCY_LABELS[event.urgency] ?? event.urgency}
+                <div style={{ display: "flex", gap: 6, alignItems: "center",
+                              marginBottom: 4 }}>
+                  <span style={{
+                    fontSize: 10, padding: "2px 6px", borderRadius: 10,
+                    background: `${URGENCY_COLORS[event.urgency]}22`,
+                    color: URGENCY_COLORS[event.urgency],
+                    border: `0.5px solid ${URGENCY_COLORS[event.urgency]}`,
+                    fontWeight: 600,
+                  }}>
+                    {URGENCY_LABELS[event.urgency]}
+                  </span>
+                  <span style={{
+                    fontSize: 10, padding: "2px 6px", borderRadius: 10,
+                    background: `${CATEGORY_COLORS[event.category] ?? "#6B7280"}22`,
+                    color: CATEGORY_COLORS[event.category] ?? "#6B7280",
+                    border: `0.5px solid ${CATEGORY_COLORS[event.category] ?? "#6B7280"}55`,
+                  }}>
+                    {event.category}
+                  </span>
                 </div>
+                <div style={{ fontSize: 11, color: "#6B7280" }}>
+                  📍 {event.region} · 🗞 {event.source}
+                </div>
+                {event.sdg_tags?.length > 0 && (
+                  <div style={{ marginTop: 6, display: "flex",
+                                flexWrap: "wrap", gap: 3 }}>
+                    {event.sdg_tags.slice(0, 3).map(tag => (
+                      <span key={tag} style={{
+                        fontSize: 9, padding: "1px 5px", borderRadius: 10,
+                        background: "rgba(55,138,221,0.15)", color: "#378ADD",
+                        border: "0.5px solid rgba(55,138,221,0.3)",
+                      }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => handleSelect(event)}
+                  style={{
+                    marginTop: 8, width: "100%", fontSize: 11,
+                    padding: "5px 0", borderRadius: 6, cursor: "pointer",
+                    background: "rgba(55,138,221,0.15)", color: "#378ADD",
+                    border: "0.5px solid rgba(55,138,221,0.3)",
+                  }}
+                >
+                  View full brief →
+                </button>
               </div>
             </Popup>
           </CircleMarker>
         ))}
-        {/* Pulse rings on crisis events */}
-        <PulseLayer events={eventList.filter(e => e.urgency === "crisis")} />
+
       </MapContainer>
 
       {/* ── Left sidebar — crisis feed ── */}
       <Sidebar
         events={eventList}
-        onSelect={setSelected}
+        onSelect={handleSelect}   // ← was setSelected
         selected={selected}
       />
 

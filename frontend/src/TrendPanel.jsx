@@ -54,6 +54,7 @@ export default function TrendPanel({ trends, onClose }) {
             { id: "trends",    label: "📈 Trends"    },
             { id: "patterns",  label: "🔍 Patterns"  },
             { id: "solutions", label: "💡 Solutions"  },
+            { id: "knowledge", label: "📚 Knowledge Base" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               fontSize: 12, padding: "6px 14px", borderRadius: "6px 6px 0 0",
@@ -216,6 +217,117 @@ export default function TrendPanel({ trends, onClose }) {
               </div>
             ))}
           </>
+        )}
+
+        {tab === "knowledge" && (
+          <div>
+            <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6,
+                          marginBottom: 16 }}>
+              The AI agents ground their summaries and solutions in these
+              UN frameworks, embedded in ChromaDB and retrieved via RAG.
+            </div>
+
+            {[
+              {
+                code: "SDG 1",  title: "No Poverty",
+                desc: "End poverty in all its forms everywhere.",
+                color: "#E24B4A",
+              },
+              {
+                code: "SDG 2",  title: "Zero Hunger",
+                desc: "End hunger, achieve food security and improved nutrition.",
+                color: "#EF9F27",
+              },
+              {
+                code: "SDG 3",  title: "Good Health",
+                desc: "Ensure healthy lives and promote well-being for all.",
+                color: "#1D9E75",
+              },
+              {
+                code: "SDG 6",  title: "Clean Water",
+                desc: "Ensure access to water and sanitation for all.",
+                color: "#378ADD",
+              },
+              {
+                code: "SDG 10", title: "Reduced Inequalities",
+                desc: "Reduce inequality within and among countries.",
+                color: "#7F77DD",
+              },
+              {
+                code: "SDG 13", title: "Climate Action",
+                desc: "Take urgent action to combat climate change.",
+                color: "#378ADD",
+              },
+              {
+                code: "SDG 16", title: "Peace & Justice",
+                desc: "Promote peaceful and inclusive societies.",
+                color: "#E24B4A",
+              },
+              {
+                code: "SDG 17", title: "Partnerships",
+                desc: "Strengthen global partnerships for sustainable development.",
+                color: "#1D9E75",
+              },
+            ].map(sdg => (
+              <div key={sdg.code} style={{
+                display: "flex", gap: 12, alignItems: "flex-start",
+                padding: "10px 0",
+                borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 8, flexShrink: 0,
+                  background: `${sdg.color}22`,
+                  border: `1px solid ${sdg.color}44`,
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                }}>
+                  <div style={{ fontSize: 9, color: sdg.color, fontWeight: 700 }}>
+                    {sdg.code.split(" ")[0]}
+                  </div>
+                  <div style={{ fontSize: 14, color: sdg.color, fontWeight: 700 }}>
+                    {sdg.code.split(" ")[1]}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600,
+                                color: "#e6edf3", marginBottom: 3 }}>
+                    {sdg.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.5 }}>
+                    {sdg.desc}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ marginTop: 16, padding: "10px 12px", borderRadius: 8,
+                          background: "rgba(55,138,221,0.06)",
+                          border: "0.5px solid rgba(55,138,221,0.2)" }}>
+              <div style={{ fontSize: 11, color: "#378ADD", fontWeight: 600,
+                            marginBottom: 4 }}>
+                📂 EMBEDDED SOURCES
+              </div>
+              {[
+                "UN SDG Knowledge Base (Goals 1–17)",
+                "UNHCR Global Compact on Refugees",
+                "OCHA Humanitarian Response Framework",
+                "WHO Epidemic Response Protocols",
+                "WFP Food Security Intervention Models",
+              ].map(doc => (
+                <div key={doc} style={{ fontSize: 12, color: "#6B7280",
+                                        padding: "3px 0", display: "flex",
+                                        alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#378ADD" }}>›</span> {doc}
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 8,
+                            borderTop: "0.5px solid rgba(255,255,255,0.06)",
+                            paddingTop: 8 }}>
+                Stored in ChromaDB · Retrieved via cosine similarity ·
+                Top-3 chunks per query
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
