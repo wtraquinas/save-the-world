@@ -1,8 +1,8 @@
 """
 Real-world data ingestion from:
-- GDELT 2.0 GKG (Global Knowledge Graph) — free, no auth, geo-tagged events
-- UN News RSS — official UN headlines
-- ReliefWeb RSS — humanitarian situation reports
+- GDELT Events API (lightweight JSON, no zip download)
+- UN News RSS
+- ReliefWeb API (JSON, much more reliable than RSS)
 """
 import json, hashlib, httpx
 from pathlib import Path
@@ -11,246 +11,158 @@ from xml.etree import ElementTree as ET
 
 LIVE_CACHE = Path(__file__).parent.parent.parent / "data" / "live_events.json"
 
-# GDELT event themes we care about — maps to our crisis categories
-GDELT_THEME_MAP = {
-    "NATURAL_DISASTER":  "climate",
-    "FLOOD":             "climate",
-    "DROUGHT":           "climate",
-    "EARTHQUAKE":        "climate",
-    "FIRE":              "climate",
-    "CONFLICT":          "conflict",
-    "WAR":               "conflict",
-    "REBEL":             "conflict",
-    "KILL":              "conflict",
-    "FOOD_SECURITY":     "famine",
-    "HUNGER":            "famine",
-    "FAMINE":            "famine",
-    "DISEASE":           "disease",
-    "EPIDEMIC":          "disease",
-    "OUTBREAK":          "disease",
-    "REFUGEE":           "displacement",
-    "DISPLACED":         "displacement",
-    "MIGRATION":         "displacement",
+CATEGORY_HINTS = {
+    "flood": "climate", "earthquake": "climate", "hurricane": "climate",
+    "drought": "climate", "wildfire": "climate", "cyclone": "climate",
+    "storm": "climate", "tsunami": "climate", "volcano": "climate",
+    "conflict": "conflict", "war": "conflict", "attack": "conflict",
+    "fighting": "conflict", "militia": "conflict", "ceasefire": "conflict",
+    "violence": "conflict", "battle": "conflict", "troops": "conflict",
+    "hunger": "famine", "food": "famine", "famine": "famine",
+    "malnutrition": "famine", "starvation": "famine", "crops": "famine",
+    "cholera": "disease", "outbreak": "disease", "epidemic": "disease",
+    "malaria": "disease", "measles": "disease", "mpox": "disease",
+    "dengue": "disease", "virus": "disease", "pandemic": "disease",
+    "refugee": "displacement", "displaced": "displacement", "flee": "displacement",
+    "asylum": "displacement", "migration": "displacement", "evacuation": "displacement",
 }
 
-RSS_FEEDS = [
-    {
-        "url":    "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
-        "source": "UN News",
-        "region": "Global",
-    },
-    {
-        "url":    "https://reliefweb.int/updates/rss.xml",
-        "source": "ReliefWeb",
-        "region": "Global",
-    },
-]
+COUNTRY_COORDS = {
+    "Ukraine":      ("UA", "Eastern Europe",     48.38,  31.17),
+    "Gaza":         ("PS", "Middle East",         31.35,  34.30),
+    "Sudan":        ("SD", "Eastern Africa",      15.55,  32.53),
+    "South Sudan":  ("SS", "Eastern Africa",       6.87,  31.57),
+    "Somalia":      ("SO", "Eastern Africa",       5.15,  46.20),
+    "Haiti":        ("HT", "Caribbean",           18.97, -72.28),
+    "Myanmar":      ("MM", "Southeast Asia",      21.91,  95.96),
+    "Ethiopia":     ("ET", "Eastern Africa",       9.14,  40.49),
+    "Afghanistan":  ("AF", "South Asia",          33.93,  67.71),
+    "Yemen":        ("YE", "Middle East",         15.55,  48.52),
+    "Syria":        ("SY", "Middle East",         34.80,  38.99),
+    "Bangladesh":   ("BD", "South Asia",          23.68,  90.35),
+    "Pakistan":     ("PK", "South Asia",          30.38,  69.35),
+    "Congo":        ("CD", "Central Africa",      -4.03,  21.75),
+    "DRC":          ("CD", "Central Africa",      -4.03,  21.75),
+    "Libya":        ("LY", "North Africa",        26.33,  17.23),
+    "Mali":         ("ML", "West Africa",         17.57,  -3.99),
+    "Mozambique":   ("MZ", "Southern Africa",    -18.67,  35.53),
+    "Venezuela":    ("VE", "South America",        6.42, -66.59),
+    "Indonesia":    ("ID", "Southeast Asia",      -0.79, 113.92),
+    "Philippines":  ("PH", "Southeast Asia",      12.88, 121.77),
+    "Nigeria":      ("NG", "West Africa",          9.08,   8.68),
+    "Niger":        ("NE", "West Africa",         17.61,   8.08),
+    "Burkina Faso": ("BF", "West Africa",         12.36,  -1.53),
+    "Chad":         ("TD", "Central Africa",      15.45,  18.73),
+    "Cameroon":     ("CM", "Central Africa",       3.85,  11.50),
+    "Iraq":         ("IQ", "Middle East",         33.22,  43.68),
+    "Lebanon":      ("LB", "Middle East",         33.85,  35.86),
+    "Colombia":     ("CO", "South America",        4.57, -74.30),
+    "Venezuela":    ("VE", "South America",        6.42, -66.59),
+    "Brazil":       ("BR", "South America",      -14.23, -51.93),
+    "India":        ("IN", "South Asia",          20.59,  78.96),
+    "Nepal":        ("NP", "South Asia",          28.39,  84.12),
+    "Kenya":        ("KE", "Eastern Africa",      -0.02,  37.91),
+    "Tanzania":     ("TZ", "Eastern Africa",      -6.37,  34.89),
+    "Malawi":       ("MW", "Southern Africa",    -13.25,  34.30),
+    "Zimbabwe":     ("ZW", "Southern Africa",    -19.01,  29.15),
+    "Madagascar":   ("MG", "Southern Africa",    -18.77,  46.87),
+    "Morocco":      ("MA", "North Africa",        31.79,  -7.09),
+    "Tunisia":      ("TN", "North Africa",        33.89,   9.54),
+    "Greece":       ("GR", "Southern Europe",     39.07,  21.82),
+    "Turkey":       ("TR", "Middle East",         38.96,  35.24),
+    "Iran":         ("IR", "Middle East",         32.43,  53.69),
+}
 
 
 def _make_id(title: str) -> str:
     return "live_" + hashlib.md5(title.lower().strip().encode()).hexdigest()[:8]
 
 
-def fetch_gdelt_events(max_events: int = 10) -> list[dict]:
+def _categorise(text: str) -> str:
+    text = text.lower()
+    for keyword, cat in CATEGORY_HINTS.items():
+        if keyword in text:
+            return cat
+    return "other"
+
+
+def _geo_tag(text: str) -> tuple | None:
+    """Find first country mention in text, return (code, region, lat, lng)."""
+    for country, info in COUNTRY_COORDS.items():
+        if country.lower() in text.lower():
+            return info
+    return None
+
+
+def fetch_gdelt_events(max_events: int = 8) -> list[dict]:
     """
-    Fetches recent events from GDELT 2.0 GKG CSV (last 15 minutes).
-    Filters to humanitarian themes, returns geo-tagged events.
-    Free, no auth, updates every 15 minutes.
+    Uses GDELT DOC 2.0 API — lightweight JSON search, no zip download.
+    Searches for humanitarian keywords in last 24h of news.
     """
-    print("[FETCHER] 🌐 Fetching GDELT events...")
+    print("[FETCHER] 🌐 Fetching GDELT via DOC API...")
     events = []
 
-    try:
-        # GDELT GKG last file list
-        r = httpx.get(
-            "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
-            timeout=15
-        )
-        lines = r.text.strip().split("\n")
+    queries = [
+        "humanitarian crisis",
+        "flood displaced",
+        "famine hunger",
+        "conflict civilians",
+        "disease outbreak",
+    ]
 
-        # Find the GKG CSV URL
-        gkg_url = None
-        for line in lines:
-            if "gkg.csv.zip" in line:
-                gkg_url = line.split(" ")[-1].strip()
-                break
+    seen_ids = set()
 
-        if not gkg_url:
-            print("[FETCHER] ⚠️ No GKG URL found")
-            return []
-
-        # Download and parse GKG zip
-        import io, zipfile, csv
-
-        print(f"[FETCHER] 📥 Downloading GKG: {gkg_url}")
-        r = httpx.get(gkg_url, timeout=30, follow_redirects=True)
-
-        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-            fname = z.namelist()[0]
-            with z.open(fname) as f:
-                reader = csv.reader(
-                    io.TextIOWrapper(f, encoding="utf-8", errors="ignore"),
-                    delimiter="\t"
-                )
-                for i, row in enumerate(reader):
-                    if i > 2000:   # scan first 2000 rows only
-                        break
-                    if len(row) < 10:
-                        continue
-
-                    try:
-                        themes_raw = row[7] if len(row) > 7 else ""
-                        locations  = row[9] if len(row) > 9 else ""
-                        title      = row[4] if len(row) > 4 else ""
-
-                        if not title or not locations:
-                            continue
-
-                        # Match themes to our categories
-                        category = None
-                        for theme_key, cat in GDELT_THEME_MAP.items():
-                            if theme_key in themes_raw.upper():
-                                category = cat
-                                break
-
-                        if not category:
-                            continue
-
-                        # Parse first location for lat/lng
-                        loc_parts = locations.split(";")[0].split("#")
-                        if len(loc_parts) < 5:
-                            continue
-
-                        lat = float(loc_parts[3]) if loc_parts[3] else 0.0
-                        lng = float(loc_parts[4]) if loc_parts[4] else 0.0
-                        country = loc_parts[2][:2].upper() if loc_parts[2] else "UN"
-                        region  = loc_parts[1] if loc_parts[1] else "Global"
-
-                        if lat == 0.0 and lng == 0.0:
-                            continue
-
-                        event = {
-                            "id":           _make_id(title),
-                            "title":        title[:200],
-                            "source":       "GDELT",
-                            "url":          row[4] if len(row) > 4 else "",
-                            "published_at": datetime.now(timezone.utc).isoformat(),
-                            "body":         f"GDELT event: {themes_raw[:300]}",
-                            "country":      country,
-                            "region":       region,
-                            "lat":          lat,
-                            "lng":          lng,
-                            "category":     category,
-                            "urgency":      None,
-                            "summary":      None,
-                            "sdg_tags":     [],
-                            "trend_signal": None,
-                            "solutions":    [],
-                        }
-                        events.append(event)
-
-                        if len(events) >= max_events:
-                            break
-
-                    except (ValueError, IndexError):
-                        continue
-
-    except Exception as e:
-        print(f"[FETCHER] ⚠️ GDELT fetch failed: {e}")
-
-    print(f"[FETCHER] ✅ GDELT: {len(events)} events fetched")
-    return events
-
-
-def fetch_rss_events(max_per_feed: int = 5) -> list[dict]:
-    """
-    Fetches latest headlines from UN News and ReliefWeb RSS feeds.
-    Geo-tags by detecting country names in titles/descriptions.
-    """
-    print("[FETCHER] 📡 Fetching RSS feeds...")
-    events = []
-
-    # Simple country name → coords lookup for RSS geo-tagging
-    COUNTRY_HINTS = {
-        "ukraine":      ("UA", "Eastern Europe",    48.38, 31.17),
-        "gaza":         ("PS", "Middle East",        31.35, 34.30),
-        "sudan":        ("SD", "Eastern Africa",     15.55, 32.53),
-        "somalia":      ("SO", "Eastern Africa",      5.15, 46.20),
-        "haiti":        ("HT", "Caribbean",          18.97,-72.28),
-        "myanmar":      ("MM", "Southeast Asia",     21.91, 95.96),
-        "ethiopia":     ("ET", "Eastern Africa",      9.14, 40.49),
-        "afghanistan":  ("AF", "South Asia",         33.93, 67.71),
-        "yemen":        ("YE", "Middle East",        15.55, 48.52),
-        "syria":        ("SY", "Middle East",        34.80, 38.99),
-        "bangladesh":   ("BD", "South Asia",         23.68, 90.35),
-        "pakistan":     ("PK", "South Asia",         30.38, 69.35),
-        "drc":          ("CD", "Central Africa",     -4.03, 21.75),
-        "congo":        ("CD", "Central Africa",     -4.03, 21.75),
-        "libya":        ("LY", "North Africa",       26.33, 17.23),
-        "mali":         ("ML", "West Africa",        17.57, -3.99),
-        "mozambique":   ("MZ", "Southern Africa",   -18.67, 35.53),
-        "venezuela":    ("VE", "South America",       6.42,-66.59),
-        "indonesia":    ("ID", "Southeast Asia",     -0.79,113.92),
-        "philippines":  ("PH", "Southeast Asia",     12.88,121.77),
-    }
-
-    CATEGORY_HINTS = {
-        "flood": "climate", "earthquake": "climate", "hurricane": "climate",
-        "drought": "climate", "wildfire": "climate", "cyclone": "climate",
-        "conflict": "conflict", "war": "conflict", "attack": "conflict",
-        "fighting": "conflict", "militia": "conflict", "ceasefire": "conflict",
-        "hunger": "famine", "food": "famine", "famine": "famine",
-        "cholera": "disease", "outbreak": "disease", "epidemic": "disease",
-        "malaria": "disease", "measles": "disease",
-        "refugee": "displacement", "displaced": "displacement", "flee": "displacement",
-    }
-
-    for feed in RSS_FEEDS:
+    for query in queries:
+        if len(events) >= max_events:
+            break
         try:
-            r = httpx.get(feed["url"], timeout=15, follow_redirects=True)
-            root = ET.fromstring(r.content)
-            items = root.findall(".//item")[:max_per_feed]
+            r = httpx.get(
+                "https://api.gdeltproject.org/api/v2/doc/doc",
+                params={
+                    "query":      query,
+                    "mode":       "artlist",
+                    "maxrecords": 5,
+                    "format":     "json",
+                    "timespan":   "24h",
+                    "sort":       "hybridrel",
+                },
+                timeout=15,
+            )
+            data = r.json()
+            articles = data.get("articles", [])
 
-            for item in items:
-                title = item.findtext("title", "").strip()
-                desc  = item.findtext("description", "").strip()
-                link  = item.findtext("link", "").strip()
-                pub   = item.findtext("pubDate", "").strip()
+            for article in articles:
+                title   = article.get("title", "").strip()
+                url     = article.get("url", "")
+                source  = article.get("domain", "GDELT")
+                seendate = article.get("seendate", "")
 
                 if not title:
                     continue
 
-                combined = (title + " " + desc).lower()
+                geo = _geo_tag(title)
+                if not geo:
+                    continue
 
-                # Geo-tag by country mention
-                lat, lng, country, region = 0.0, 0.0, "GL", "Global"
-                for keyword, (c, reg, la, ln) in COUNTRY_HINTS.items():
-                    if keyword in combined:
-                        country, region, lat, lng = c, reg, la, ln
-                        break
+                country, region, lat, lng = geo
+                event_id = _make_id(title)
 
-                if lat == 0.0:
-                    continue   # skip events we can't place on map
-
-                # Categorise by keyword
-                category = "other"
-                for keyword, cat in CATEGORY_HINTS.items():
-                    if keyword in combined:
-                        category = cat
-                        break
+                if event_id in seen_ids:
+                    continue
+                seen_ids.add(event_id)
 
                 events.append({
-                    "id":           _make_id(title),
+                    "id":           event_id,
                     "title":        title[:200],
-                    "source":       feed["source"],
-                    "url":          link,
-                    "published_at": pub or datetime.now(timezone.utc).isoformat(),
-                    "body":         desc[:500],
+                    "source":       source,
+                    "url":          url,
+                    "published_at": seendate or datetime.now(timezone.utc).isoformat(),
+                    "body":         f"Reported by {source}. Query: {query}.",
                     "country":      country,
                     "region":       region,
                     "lat":          lat,
                     "lng":          lng,
-                    "category":     category,
+                    "category":     _categorise(title),
                     "urgency":      None,
                     "summary":      None,
                     "sdg_tags":     [],
@@ -259,24 +171,150 @@ def fetch_rss_events(max_per_feed: int = 5) -> list[dict]:
                 })
 
         except Exception as e:
-            print(f"[FETCHER] ⚠️ RSS {feed['source']} failed: {e}")
+            print(f"[FETCHER] ⚠️ GDELT query '{query}' failed: {e}")
+            continue
 
-    print(f"[FETCHER] ✅ RSS: {len(events)} events fetched")
+    print(f"[FETCHER] ✅ GDELT DOC API: {len(events)} events")
+    return events
+
+
+def fetch_reliefweb_events(max_events: int = 6) -> list[dict]:
+    """
+    ReliefWeb JSON API — much more reliable than their RSS.
+    Returns structured humanitarian reports with country data.
+    """
+    print("[FETCHER] 📡 Fetching ReliefWeb API...")
+    events = []
+
+    try:
+        r = httpx.post(
+            "https://api.reliefweb.int/v1/reports",
+            json={
+                "appname": "un-ai-situation-room",
+                "limit":   max_events,
+                "fields": {
+                    "include": ["title", "body", "date", "country", "disaster_type", "source"]
+                },
+                "filter": {
+                    "operator": "AND",
+                    "conditions": [
+                        {"field": "status", "value": "published"},
+                    ]
+                },
+                "sort": ["date:desc"],
+            },
+            timeout=15,
+        )
+        data = r.json()
+
+        for item in data.get("data", []):
+            fields  = item.get("fields", {})
+            title   = fields.get("title", "").strip()
+            body    = fields.get("body", "")[:500]
+            date    = fields.get("date", {}).get("created", "")
+            sources = fields.get("source", [{}])
+            source  = sources[0].get("name", "ReliefWeb") if sources else "ReliefWeb"
+
+            countries = fields.get("country", [{}])
+            if not countries:
+                continue
+
+            country_name = countries[0].get("name", "")
+            geo = _geo_tag(country_name) or _geo_tag(title)
+            if not geo:
+                continue
+
+            country_code, region, lat, lng = geo
+
+            events.append({
+                "id":           _make_id(title),
+                "title":        title[:200],
+                "source":       source,
+                "url":          f"https://reliefweb.int/node/{item.get('id','')}",
+                "published_at": date or datetime.now(timezone.utc).isoformat(),
+                "body":         body,
+                "country":      country_code,
+                "region":       region,
+                "lat":          lat,
+                "lng":          lng,
+                "category":     _categorise(title + " " + body),
+                "urgency":      None,
+                "summary":      None,
+                "sdg_tags":     [],
+                "trend_signal": None,
+                "solutions":    [],
+            })
+
+    except Exception as e:
+        print(f"[FETCHER] ⚠️ ReliefWeb API failed: {e}")
+
+    print(f"[FETCHER] ✅ ReliefWeb: {len(events)} events")
+    return events
+
+
+def fetch_rss_events(max_per_feed: int = 6) -> list[dict]:
+    """UN News RSS — now with better geo-tagging."""
+    print("[FETCHER] 📰 Fetching UN News RSS...")
+    events = []
+
+    try:
+        r = httpx.get(
+            "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+            timeout=15,
+            follow_redirects=True,
+        )
+        root = ET.fromstring(r.content)
+        items = root.findall(".//item")[:max_per_feed]
+
+        for item in items:
+            title = item.findtext("title", "").strip()
+            desc  = item.findtext("description", "").strip()
+            link  = item.findtext("link", "").strip()
+            pub   = item.findtext("pubDate", "").strip()
+
+            if not title:
+                continue
+
+            combined = title + " " + desc
+            geo = _geo_tag(combined)
+            if not geo:
+                continue
+
+            country, region, lat, lng = geo
+
+            events.append({
+                "id":           _make_id(title),
+                "title":        title[:200],
+                "source":       "UN News",
+                "url":          link,
+                "published_at": pub or datetime.now(timezone.utc).isoformat(),
+                "body":         desc[:500],
+                "country":      country,
+                "region":       region,
+                "lat":          lat,
+                "lng":          lng,
+                "category":     _categorise(combined),
+                "urgency":      None,
+                "summary":      None,
+                "sdg_tags":     [],
+                "trend_signal": None,
+                "solutions":    [],
+            })
+
+    except Exception as e:
+        print(f"[FETCHER] ⚠️ UN RSS failed: {e}")
+
+    print(f"[FETCHER] ✅ UN News RSS: {len(events)} events")
     return events
 
 
 def fetch_live_events(max_events: int = 15) -> list[dict]:
-    """
-    Combines GDELT + RSS, deduplicates, saves to live_events.json.
-    Falls back to mock data if both fail.
-    """
+    """Combines all sources, deduplicates, saves to cache."""
     all_events = []
 
-    gdelt = fetch_gdelt_events(max_events=max_events // 2)
-    all_events.extend(gdelt)
-
-    rss = fetch_rss_events(max_per_feed=4)
-    all_events.extend(rss)
+    all_events.extend(fetch_gdelt_events(max_events=6))
+    all_events.extend(fetch_reliefweb_events(max_events=6))
+    all_events.extend(fetch_rss_events(max_per_feed=6))
 
     # Deduplicate by id
     seen = set()
@@ -291,8 +329,8 @@ def fetch_live_events(max_events: int = 15) -> list[dict]:
     if unique:
         LIVE_CACHE.parent.mkdir(exist_ok=True)
         LIVE_CACHE.write_text(json.dumps(unique, indent=2))
-        print(f"[FETCHER] 💾 Saved {len(unique)} live events to cache")
+        print(f"[FETCHER] 💾 {len(unique)} live events saved")
     else:
-        print("[FETCHER] ⚠️ No live events — pipeline will use mock data")
+        print("[FETCHER] ⚠️ No live events fetched — mock data will be used")
 
     return unique
