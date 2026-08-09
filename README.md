@@ -1,8 +1,7 @@
 
 
 
-# 🌍 UN AI Situation Room 
-## (Save the World)
+# 🌍 UN AI Situation Room (Save the World)
 
 > A LangGraph-powered humanitarian intelligence platform that monitors global crises,
 > analyses trends, and proposes UN-grounded solutions in real time.
